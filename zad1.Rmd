@@ -7,24 +7,42 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+library(magrittr)
+library(dplyr) 
+library(knitr) 
 ```
 
-## R Markdown
+# Zadanie 1
+Analizowane województwa:
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+* Mazowieckie
+* Warmińsko-mazurskie
+* Dolnośląskie
+* Podkarpackie
+* Podlaskie
+* Śląskie
+* Świętokrzyskie
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+Dane dotyczące populacji województw: https://stat.gov.pl/obszary-tematyczne/ludnosc/ludnosc/powierzchnia-i-ludnosc-w-przekroju-terytorialnym-w-2020-roku,7,17.html
+Dane dotyczące ilości szczepień: http://bit.ly/covid19-poland
 
-```{r cars}
-summary(cars)
+Dane na dzień **08.06.2021**
+
+```{r}
+data_1 = data.frame(voivodeship=c('Mazowieckie', 'Warmińsko-mazurskie', 'Dolnośląskie', 'Podkarpackie', 'Podlaskie', 'Śląskie', 'Świętokrzyskie'), 
+                    vaccinated=c(3460137, 737079, 1828954, 1066268, 699749, 2693489, 627930),
+                    deaths=c(9332, 2980, 4851, 4423, 2127, 9310, 2521),
+                    confirmed_cases=c(396040, 121772, 212832, 126389, 69798, 362023, 72899),
+                    population=c(5423168, 1422737, 2900163, 2127164, 1178353, 4517635, 1233961))
+
+data_1
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+## a) Sprawdz, czy proces szczepien przeciw SARS-CoV-2 przebiega równie szybko we wszystkich województwach, tzn. czy liczba szczepien jest proporcjonalna do populacji tych wojewdództw.
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+
+```{r}
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
