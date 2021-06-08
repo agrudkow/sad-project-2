@@ -9,8 +9,10 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 library(magrittr)
-library(dplyr) 
-library(knitr) 
+library(dplyr)
+library(ggplot2)
+
+library(knitr) # kable 
 ```
 
 # Zadanie 1
@@ -25,19 +27,95 @@ Analizowane województwa:
 * Świętokrzyskie
 
 Dane dotyczące populacji województw: https://stat.gov.pl/obszary-tematyczne/ludnosc/ludnosc/powierzchnia-i-ludnosc-w-przekroju-terytorialnym-w-2020-roku,7,17.html
+
 Dane dotyczące ilości szczepień: http://bit.ly/covid19-poland
 
 Dane na dzień **08.06.2021**
 
 ```{r}
-data_1 = data.frame(voivodeship=c('Mazowieckie', 'Warmińsko-mazurskie', 'Dolnośląskie', 'Podkarpackie', 'Podlaskie', 'Śląskie', 'Świętokrzyskie'), 
+data_1 <- data.frame(voivodeship=c('Mazowieckie', 'Warmińsko-mazurskie', 'Dolnośląskie', 'Podkarpackie', 'Podlaskie', 'Śląskie', 'Świętokrzyskie'), 
                     vaccinated=c(3460137, 737079, 1828954, 1066268, 699749, 2693489, 627930),
                     deaths=c(9332, 2980, 4851, 4423, 2127, 9310, 2521),
                     confirmed_cases=c(396040, 121772, 212832, 126389, 69798, 362023, 72899),
                     population=c(5423168, 1422737, 2900163, 2127164, 1178353, 4517635, 1233961))
-
-data_1
 ```
+```{r echo=FALSE, results='asis'}
+kable(data_1, col.names = c("Województwo", "Ilosść zaszczepionych osób", "Ilość zgonów", "Ilość zakażonych", "Populacja"))
+```
+
+## Wizualizacja dancy
+
+### Wielkośc populacji województw
+<center> 
+```{r echo=FALSE}
+ggplot(data_1, aes(x = voivodeship, y = population)) + geom_bar(stat = 'identity', fill = '#c3e8e0') +
+  ggtitle('Wielkość populacji województw') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Województwo') + ylab("Populacja") +
+  geom_text(aes(label = sprintf("%d", population), y= population), vjust = 2)
+```
+</center>
+
+### Stosunek ilości szczepień do populacji dla województw
+```{r}
+data_1['vacination_factor'] = data_1$vaccinated / data_1$population
+```
+
+<center> 
+```{r echo=FALSE}
+ggplot(data_1, aes(x = voivodeship, y = vacination_factor)) + geom_bar(stat = 'identity', fill = '#c3e8e0') +
+  ggtitle('Stosunek ilości szczepień do populacji dla województw') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Województwo') + ylab("Szczepienia na osobę") +
+  geom_text(aes(label = sprintf("%f", vacination_factor), y= vacination_factor), vjust = 2)
+```
+</center>
+
+### Stosunek ilości zakażonych do populacji dla województw
+```{r}
+data_1['confirmed_cases_factor'] = data_1$confirmed_cases / data_1$population
+```
+
+<center> 
+```{r echo=FALSE}
+ggplot(data_1, aes(x = voivodeship, y = confirmed_cases_factor)) + geom_bar(stat = 'identity', fill = '#c3e8e0') +
+  ggtitle('Stosunek ilości zakażonych do populacji dla województw') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Województwo') + ylab("Zakazenia na osobę") +
+  geom_text(aes(label = sprintf("%f", confirmed_cases_factor), y= confirmed_cases_factor), vjust = 2)
+```
+</center>
+
+
+### Stosunek ilości śmierci do populacji dla województw
+```{r}
+data_1['death_factor'] = data_1$deaths / data_1$population
+```
+
+<center> 
+```{r echo=FALSE}
+ggplot(data_1, aes(x = voivodeship, y = death_factor)) + geom_bar(stat = 'identity', fill = '#c3e8e0') +
+  ggtitle('Stosunek ilości śmierci do populacji dla województw') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Województwo') + ylab("Zgony na osobę") +
+  geom_text(aes(label = sprintf("%f", death_factor), y= death_factor), vjust = 2)
+```
+</center>
+
+### Stosunek ilości śmierci do zakażonych dla województw
+```{r}
+data_1['death_confirmed_cases_factor'] = data_1$deaths / data_1$confirmed_cases
+```
+
+<center> 
+```{r echo=FALSE}
+ggplot(data_1, aes(x = voivodeship, y = death_confirmed_cases_factor)) + geom_bar(stat = 'identity', fill = '#c3e8e0') +
+  ggtitle('Stosunek ilości śmierci do zakażonych  dla województw') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Województwo') + ylab("Zgony na zakażoną osobę") +
+  geom_text(aes(label = sprintf("%f", death_confirmed_cases_factor), y= death_confirmed_cases_factor), vjust = 2)
+```
+</center>
 
 
 ## a) Sprawdz, czy proces szczepien przeciw SARS-CoV-2 przebiega równie szybko we wszystkich województwach, tzn. czy liczba szczepien jest proporcjonalna do populacji tych wojewdództw.
