@@ -1,7 +1,7 @@
 ---
-title: "Projekt 2"
-author: "Tarashkevich Pavel, Grudkowski Artur"
-date: "2 06 2021"
+title: "SAD"
+author: "Artur Grudkowski"
+date: "8 06 2021"
 output: html_document
 ---
 
@@ -220,5 +220,3 @@ Na podstawie wyników testu dla par można dojść do wniosku, że istotnie ró�
 * Mazowieckie - Warmińsko-mazurskie.
 
 Powyższe wyniki interpretujemy podbnie tj. wszystkie pary poza wymienionymi wyżej nie różnio się sitotnie między soba rozkładem (liczba przypadków smiertelnych jest nie proporcjonalna do liczby osób zarazonych).
-
-# Zadanie 2
