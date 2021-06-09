@@ -1,0 +1,56 @@
+---
+title: "[SAD] Project 2"
+output: html_notebook
+---
+
+# Zadanie 2
+
+## Opis zadania
+
+Sprawdź tezę mówiącą o tym, że tzw. atut własnego boiska w ligowym meczu piłkarskimnie zależy od kraju, w którym toczą się dane rozgrywki ligowe. W tym celu, zweryfikuj hipotezę o niezależnościwyniku  meczu,  rozumianego  jako  zwycięstwo,  porażkę  lub  remis  gospodarzy,  od  kraju  rozgrywek.  Dane  doprzeprowadzenia testu można znaleźć na stronie https://pl.fcstats.com. Dane te znajdują się w zakładce„Porównanie lig”/„Zwycięzcy meczów” w tabeli, w której w poszczególnych kolumnach „1”, „x” i „2” podanesą, odpowiednio, liczby zwycięstw, remisów i porażek gospodarzy. Zestaw lig do przeanalizowania dla każdegozespołu zostanie podany w osobnym pliku.W ramach rozwiązania zadania zaimplementuj odpowiednie dla testu niezależności wyrażenia, na podstawiektórych obliczane są: statystyka testowa, wartość krytyczna oraz p-wartość. Przeprowadź wnioskowanie porów-nując wartość otrzymanej statystyki testowej z wartością krytyczną, przy poziomie istotności 0,05. Czy obliczonap-wartość potwierdza wynik wnioskowania? Sprawdź uzyskane wyniki wykorzystując funkcjęchisq.test
+
+## Rozwiązanie
+
+### Wczytywanie danych
+
+```{r}
+file_path <- "data_ligue.txt"
+
+dat <- read.csv(file_path)
+dat
+```
+### Test niezależności
+Srawdzamy tezę mówiącą o tym, że tzw. atut własnego boiska w ligowym meczu piłkarskimnie zależy od kraju, w którym toczą się dane rozgrywki ligowe. W tym celu została zaimplementowana funkcja, która oblicza wartość statystyki testowej dla testu niezależności.
+```{r}
+custom_chisqr <- function(x) {
+  n <- sum(x)
+  rs <- rowSums(x)
+  cs <- colSums(x)
+  e <- outer(rs, cs, "*") / n
+  statistic_val <- sum((x - e)^2 / e)
+  statistic_val
+}
+```
+Wartość statystyki testowej:
+```{r}
+statistic_val <- custom_chisqr(dat)
+statistic_val
+```
+Wartość krytyczna:
+```{r}
+crit_val <- qchisq(0.05,
+                   df = 3*2, #degrees of freedom
+                   lower.tail = FALSE)
+crit_val
+```
+P-wartość:
+```{r}
+p_val <- pchisq(statistic_val,
+                df = 3*2, #degrees of freedom
+                lower.tail = FALSE)
+p_val
+```
+### Wniosek
+Wartość statystyki testowej jest mniejsza, niż wartość krytyczna, więc nie można odrzucić hipotezy zerowej.
+P-wartość to potwierdza, ponieważ jest większa, niż zakładany poziom istotności 0.05.
+
