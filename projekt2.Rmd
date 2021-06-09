@@ -6,10 +6,219 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+renv::restore()
 knitr::opts_chunk$set(echo = TRUE)
+
+library(magrittr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(tibble)
+
+library(knitr) # kable 
 ```
 
 # Zadanie 1
+Analizowane województwa:
 
+* Mazowieckie
+* Warmińsko-mazurskie
+* Dolnośląskie
+* Podkarpackie
+* Podlaskie
+* Śląskie
+* Świętokrzyskie
+
+Dane dotyczące populacji województw: https://stat.gov.pl/obszary-tematyczne/ludnosc/ludnosc/powierzchnia-i-ludnosc-w-przekroju-terytorialnym-w-2020-roku,7,17.html
+
+Dane dotyczące liczby szczepień: http://bit.ly/covid19-poland
+
+Dane na dzień **08.06.2021**
+
+```{r}
+data_1 <- data.frame(voivodeship=c('Mazowieckie', 
+                                   'Warmińsko-mazurskie', 
+                                   'Dolnośląskie', 
+                                   'Podkarpackie', 
+                                   'Podlaskie', 
+                                   'Śląskie', 
+                                   'Świętokrzyskie'), 
+                    vaccinated=as.integer(c(3460137, 737079, 1828954, 1066268, 699749, 2693489, 627930)),
+                    deaths=as.integer(c(9332, 2980, 4851, 4423, 2127, 9310, 2521)),
+                    confirmed_cases=as.integer(c(396040, 121772, 212832, 126389, 69798, 362023, 72899)),
+                    population=as.integer(c(5423168, 1422737, 2900163, 2127164, 1178353, 4517635, 1233961)))
+```
+```{r echo=FALSE, results='asis'}
+kable(data_1, col.names = c("Województwo", "Ilosść zaszczepionych osób", "Liczba zgonów", "Liczba zakażonych", "Populacja"))
+```
+
+## a) Sprawdz, czy proces szczepien przeciw SARS-CoV-2 przebiega równie szybko we wszystkich województwach, tzn. czy liczba szczepien jest proporcjonalna do populacji tych wojewdództw.
+
+W celu sprawdzenia czy proces szczepień przciw SARS-CoV-2 przebiega równie szybko wewszystkich wojewodxtwach należy przeprowadzić test określający zgodność rozkładów tj. sprawdzenie tego czy dane dotyczące liczby wykonanych szczepień pochodzą z tego samego rozkłądu co wielkości populacji. Test, który odpowiada za określenie zgodności rozkładów nosi nazwę testu zgodności rozkładu *chi-kwadrat*. Możliwość wykonania takiego testu dostarcza metoda *chisq.test* z ustawionymi odpowiednimi parametrami.
+
+**Hipoteza zerowa**: liczba szczepień przeciw SARS-CoV-2 jest proporcjonalna do populacji tych województw.
+
+### Wizualizacja dancy
+Poniżej zwizualizowano wielkości województw oraz stosunek liczby szczepień do wielkości populacji dla każdego z województw. Ma to na celu poglądowe przedstawienie zależności, które będą sprawdzane przy pomocy testu zgodności rozkładu *chi-kwadrat*.
+
+#### Wielkośc populacji województw
+<center> 
+```{r echo=FALSE}
+ggplot(data_1, aes(x = voivodeship, y = population)) + geom_bar(stat = 'identity', fill = '#c3e8e0') +
+  ggtitle('Wielkość populacji województw') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Województwo') + ylab("Populacja") +
+  geom_text(aes(label = sprintf("%d", population), y= population), vjust = 2)
+```
+</center>
+
+#### Stosunek liczby szczepień do populacji dla województw
+```{r}
+data_1['vacination_factor'] = data_1$vaccinated / data_1$population
+```
+
+<center> 
+```{r echo=FALSE}
+ggplot(data_1, aes(x = voivodeship, y = vacination_factor)) + geom_bar(stat = 'identity', fill = '#c3e8e0') +
+  ggtitle('Stosunek liczby szczepień do populacji dla województw') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Województwo') + ylab("Szczepienia na osobę") +
+  geom_text(aes(label = sprintf("%f", vacination_factor), y= vacination_factor), vjust = 2)
+```
+</center>
+
+### Test zgodności rozkładu *chi-kwadrat* 
+```{r}
+population_probabilities <- data_1$population / sum(data_1$population)
+
+test_result_a <- chisq.test(x=data_1$vaccinated, p=population_probabilities)
+
+test_result_a
+
+```
+
+**p-wartość: `r round(test_result_a$p.value, digits = 6)`** (zaokraglona do 6 mijesc po przecinku)
+
+W przpadku gdy test zgodnosci przeprowadzano na poziomie istotności $\alpha$ = 0.05, należałoby uznać, że liczba szczepien nie liczba szczepien jest proporcjonalna do populacji tych wojewdództw.
+
+### Test zgodności rozkładu *chi-kwadrat* dla par województw
+
+Celem wskazania które województwa się od siebie najbardziej różnią, przeprowadzono testy zgodności zgodności rozkładu *chi-kwadrat* parami. Wyniki testów dla wszystkich możliwych par województw przedstawiono w poniższej tabeli (wartości zostały zaokrąglone do 6 miejsc po przecinku).
+
+```{r}
+pairwise_result_a <- data.frame(voivodeship_1=character(), voivodeship_2=character(), xsq=double(), pval=double())
+
+for (i in 1:(nrow(data_1) - 1)) {
+  for (j in (i+1):nrow(data_1)) {
+    v_1 <- data_1$voivodeship[i]
+    v_2 <- data_1$voivodeship[j]
+    pr <- data_1$population[c(i, j)] / sum(data_1$population[c(i, j)])
+    tr <- chisq.test(x=data_1$vaccinated[c(i, j)], p=pr)
+    pairwise_result_a <- pairwise_result_a %>% tibble::add_row(voivodeship_1=v_1, 
+                                                           voivodeship_2=v_2, 
+                                                           xsq=tr$statistic, 
+                                                           pval=tr$p.value)
+  }
+}
+```
+```{r echo=FALSE, results='asis'}
+kable(pairwise_result_a, col.names = c("Województwo (1)", "Województwo (2)", "X-squared", "p-value"), digits = 6)
+```
+
+Na podstawie wyników testu dla par można dojść do wniosku, że istotnie różniące się województwa to:
+
+* Podlaskie - Śląskie.
+
+Takiego wyniku można też się doszukać na wykresach przedstawionych na wykresach, gdzie województwo Podlaskei ma ok. 4 krotnie niższą populacje a stasunek liczby szczepień do licznoścli poulacji jest prawie taki sam dla obu województw.
+
+Ze wspomnianych wykresów można doszukiwać się innych rozbieżności, jednakże w porówaniu do wsakzanej rozbieżności (i w przypadku zaokrąglenia p-wartości nie różnia się one od siebie).
+
+## b) Sprawdz, czy skutecznosc leczenia osób zarazonych wirusem SARS-CoV-2 jest taka sama na terenie całej Polski, tzn. czy liczba przypadków smiertelnych jest proporcjonalna do liczby osób zarazonych w poszczególnych województwach.
+
+W celu sprawdzenia czy skutecznosc leczenia osób zarazonych wirusem SARS-CoV-2 jest taka sama na terenie całej Polski należy przeprowadzić test określający zgodność rozkładów tj. sprawdzenie tego czy dane dotyczące liczby wykonanych szczepień pochodzą z tego samego rozkłądu co wielkości populacji.
+
+**Hipoteza zerowa**: liczba przypadków smiertelnych jest proporcjonalna do liczby osób zarazonych w poszczególnych województwach.
+
+### Wizualizacja danych
+Podobnie ja w punkcie *a*, poniżej zwizualizowano wielkości województw oraz stosunek liczby szczepień do wielkości populacji dla każdego z województw.
+
+#### Liczba zakażonych dla województw
+
+<center> 
+```{r echo=FALSE}
+ggplot(data_1, aes(x = voivodeship, y = confirmed_cases)) + geom_bar(stat = 'identity', fill = '#c3e8e0') +
+  ggtitle('Liczba zakażonych dla województw') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Województwo') + ylab("Liczba zakażonych") +
+  geom_text(aes(label = sprintf("%d", confirmed_cases), y= confirmed_cases), vjust = 2)
+```
+</center>
+
+
+#### Stosunek liczby śmierci do zakażonych dla województw
+```{r}
+data_1['death_confirmed_cases_factor'] = data_1$deaths / data_1$confirmed_cases
+```
+
+<center> 
+```{r echo=FALSE}
+ggplot(data_1, aes(x = voivodeship, y = death_confirmed_cases_factor)) + geom_bar(stat = 'identity', fill = '#c3e8e0') +
+  ggtitle('Stosunek liczby śmierci do zakażonych  dla województw') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Województwo') + ylab("Zgony na zakażoną osobę") +
+  geom_text(aes(label = sprintf("%f", death_confirmed_cases_factor), y= death_confirmed_cases_factor), vjust = 2)
+```
+</center>
+
+### Test zgodności rozkładu *chi-kwadrat* 
+
+```{r}
+confirmed_cases_probabilities <- data_1$confirmed_cases / sum(data_1$confirmed_cases)
+
+test_result_b <- chisq.test(x=data_1$deaths, p=confirmed_cases_probabilities)
+
+test_result_b
+
+```
+
+**p-wartość: `r round(test_result_b$p.value, digits = 6)`** (zaokraglona do 6 mijesc po przecinku)
+
+Gdyby testy przeprowadzano na poziomie istotności $\alpha$ = 0.05, należałoby uznać, że liczba przypadków smiertelnych nie jest proporcjonalna do liczby osób zarazonych w poszczególnych województwach.
+
+### Test zgodności rozkładu *chi-kwadrat* dla par województw
+
+Wyniki testów dla wszystkich możliwych par województw przedstawiono w poniższej tabeli (wartości zostały zaokrąglone do 6 miejsc po przecinku).
+
+```{r}
+pairwise_result_b <- data.frame(voivodeship_1=character(), voivodeship_2=character(), xsq=double(), pval=double())
+
+for (i in 1:(nrow(data_1) - 1)) {
+  for (j in (i+1):nrow(data_1)) {
+    v_1 <- data_1$voivodeship[i]
+    v_2 <- data_1$voivodeship[j]
+    ccp <- data_1$confirmed_cases[c(i, j)] / sum(data_1$confirmed_cases[c(i, j)])
+    tr <- chisq.test(x=data_1$deaths[c(i, j)], p=ccp)
+    pairwise_result_b <- pairwise_result_b %>% tibble::add_row(voivodeship_1=v_1, 
+                                                           voivodeship_2=v_2, 
+                                                           xsq=tr$statistic, 
+                                                           pval=tr$p.value)
+  }
+}
+```
+```{r echo=FALSE, results='asis'}
+kable(pairwise_result_b, col.names = c("Województwo (1)", "Województwo (2)", "X-squared", "p-value"), digits = 6)
+```
+
+Na podstawie wyników testu dla par można dojść do wniosku, że istotnie różniące się województwa to:
+
+* Mazowieckie - Warmińsko-mazurskie,
+* Mazowieckie - Dolnośląskie,
+* Warmińsko-mazurskie - Dolnośląskie,
+* Warmińsko-mazurskie - Śląskie,
+* Podkarpackie - Świętokrzyskie,
+* Podlaskie - Świętokrzyskie,
+* Mazowieckie - Warmińsko-mazurskie.
+
+Powyższe wyniki interpretujemy podbnie tj. wszystkie pary poza wymienionymi wyżej nie różnio się sitotnie między soba rozkładem (liczba przypadków smiertelnych jest nie proporcjonalna do liczby osób zarazonych).
 
 # Zadanie 2
