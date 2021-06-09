@@ -1,16 +1,19 @@
 ---
-title: "Zadanie 1"
+title: "SAD"
 author: "Artur Grudkowski"
 date: "8 06 2021"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
+renv::restore()
 knitr::opts_chunk$set(echo = TRUE)
 
 library(magrittr)
 library(dplyr)
+library(tidyr)
 library(ggplot2)
+library(tibble)
 
 library(knitr) # kable 
 ```
@@ -33,7 +36,13 @@ Dane dotyczące ilości szczepień: http://bit.ly/covid19-poland
 Dane na dzień **08.06.2021**
 
 ```{r}
-data_1 <- data.frame(voivodeship=c('Mazowieckie', 'Warmińsko-mazurskie', 'Dolnośląskie', 'Podkarpackie', 'Podlaskie', 'Śląskie', 'Świętokrzyskie'), 
+data_1 <- data.frame(voivodeship=c('Mazowieckie', 
+                                   'Warmińsko-mazurskie', 
+                                   'Dolnośląskie', 
+                                   'Podkarpackie', 
+                                   'Podlaskie', 
+                                   'Śląskie', 
+                                   'Świętokrzyskie'), 
                     vaccinated=c(3460137, 737079, 1828954, 1066268, 699749, 2693489, 627930),
                     deaths=c(9332, 2980, 4851, 4423, 2127, 9310, 2521),
                     confirmed_cases=c(396040, 121772, 212832, 126389, 69798, 362023, 72899),
@@ -120,7 +129,84 @@ ggplot(data_1, aes(x = voivodeship, y = death_confirmed_cases_factor)) + geom_ba
 
 ## a) Sprawdz, czy proces szczepien przeciw SARS-CoV-2 przebiega równie szybko we wszystkich województwach, tzn. czy liczba szczepien jest proporcjonalna do populacji tych wojewdództw.
 
+W celu sprawdzenia czy proces szczepień przciw SARS-CoV-2 przebiega równie szybko wewszystkich wojewodxtwach należy przeprowadzić test określający zgodność rozkładów tj. sprawdzenie tego czy dane dotyczące ilości wykonanych szczepień pochodzą z tego samego rozkłądu co wielkości populacji. Test, który odpowiada za określenie zgodności rozkładów nosi nazwę *chi-kwadrat*.
+
+**Hipoteza zerowa**: ilość szczepień przeciw SARS-CoV-2 jest proporcjonalna do populacji tych województw.
+
 
 ```{r}
+population_probabilities <- data_1$population / sum(data_1$population)
+
+test_result_a <- chisq.test(x=data_1$vaccinated, p=population_probabilities)
+
+test_result_a
+
 ```
 
+**p-wartość: `r round(test_result_a$p.value, digits = 6)`**
+
+Gdyby testy przeprowadzano na poziomie istotności $\alpha$ = 0.05, należałoby uznać, że liczba szczepień w danym województwie nie zależy od rozmiarów jego puplacji.
+
+Celem wskazania które województwa się od siebie najbardziej różnią, przeprowadzono testy zgodności chi-kwadrat parami. Ponieważ badane jest 7 województw par takich jest 21. Wyniki tych testów przedstawia tabela (wartości p-value zostały zaokrąglone do 6 miejsc po przecinku)
+
+```{r}
+pairwise_result <- data.frame(voivodeship_1=character(), voivodeship_2=character(), xsq=double(), pval=double())
+
+for (i in 1:(nrow(data_1) - 1)) {
+  for (j in (i+1):nrow(data_1)) {
+    v_1 <- data_1$voivodeship[i]
+    v_2 <- data_1$voivodeship[j]
+    pr <- data_1$population[c(i, j)] / sum(data_1$population[c(i, j)])
+    tr <- chisq.test(x=data_1$vaccinated[c(i, j)], p=pr)
+    pairwise_result <- pairwise_result %>% tibble::add_row(voivodeship_1=v_1, 
+                                                           voivodeship_2=v_2, 
+                                                           xsq=tr$statistic, 
+                                                           pval=tr$p.value)
+  }
+}
+```
+```{r echo=FALSE, results='asis'}
+kable(pairwise_result, col.names = c("Województwo (1)", "Województwo (2)", "X-squared", "p-value"), digits = 6)
+```
+
+## b) Sprawdz, czy skutecznosc leczenia osób zarazonych wirusem SARS-CoV-2 jest taka sama na terenie całej Polski, tzn. czy liczba przypadków smiertelnych jest proporcjonalna do liczby osób zarazonych w poszczególnych województwach.
+
+W celu sprawdzenia czy skutecznosc leczenia osób zarazonych wirusem SARS-CoV-2 jest taka sama na terenie całej Polski należy przeprowadzić test określający zgodność rozkładów tj. sprawdzenie tego czy dane dotyczące ilości wykonanych szczepień pochodzą z tego samego rozkłądu co wielkości populacji. Test, który odpowiada za określenie zgodności rozkładów nosi nazwę *chi-kwadrat*.
+
+**Hipoteza zerowa**: liczba przypadków smiertelnych jest proporcjonalna do liczby osób zarazonych w poszczególnych województwach.
+
+
+```{r}
+confirmed_cases_probabilities <- data_1$confirmed_cases / sum(data_1$confirmed_cases)
+
+test_result_b <- chisq.test(x=data_1$deaths, p=confirmed_cases_probabilities)
+
+test_result_b
+
+```
+
+**p-wartość: `r round(test_result_b$p.value, digits = 6)`**
+
+Gdyby testy przeprowadzano na poziomie istotności $\alpha$ = 0.05, należałoby uznać, że liczba szczepień w danym województwie nie zależy od rozmiarów jego puplacji.
+
+Celem wskazania które województwa się od siebie najbardziej różnią, przeprowadzono testy zgodności chi-kwadrat parami. Ponieważ badane jest 7 województw par takich jest 21. Wyniki tych testów przedstawia tabela (wartości p-value zostały zaokrąglone do 6 miejsc po przecinku)
+
+```{r}
+pairwise_result <- data.frame(voivodeship_1=character(), voivodeship_2=character(), xsq=double(), pval=double())
+
+for (i in 1:(nrow(data_1) - 1)) {
+  for (j in (i+1):nrow(data_1)) {
+    v_1 <- data_1$voivodeship[i]
+    v_2 <- data_1$voivodeship[j]
+    ccp <- data_1$confirmed_cases[c(i, j)] / sum(data_1$confirmed_cases[c(i, j)])
+    tr <- chisq.test(x=data_1$deaths[c(i, j)], p=ccp)
+    pairwise_result <- pairwise_result %>% tibble::add_row(voivodeship_1=v_1, 
+                                                           voivodeship_2=v_2, 
+                                                           xsq=tr$statistic, 
+                                                           pval=tr$p.value)
+  }
+}
+```
+```{r echo=FALSE, results='asis'}
+kable(pairwise_result, col.names = c("Województwo (1)", "Województwo (2)", "X-squared", "p-value"), digits = 6)
+```
