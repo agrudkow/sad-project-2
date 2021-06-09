@@ -1,0 +1,5 @@
+1,X,2
+Bundesliga_niemiecka,125,86,95
+Ekstraklasa_polska,108,65,67
+Super_League_chiny,102,79,59
+Ligue_1_francuska,179,97,104
